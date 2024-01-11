@@ -4,6 +4,8 @@
 #include "Audio.h"
 #include "PubSubClient.h"
 
+#define DEEP_SLEEP_TIME 945 // * 15h 45min
+
 // Structure Config with default configuration parameters
 struct Config{
   // I2S
@@ -34,6 +36,17 @@ Audio audio;
 // Create WI-Fi client object and MQTT client object
 WiFiClient espClient;
 PubSubClient client(espClient);
+
+
+void goToDeepSleep()
+{
+    Serial.println("Going to sleep...");
+    // Configure the timer to wake us up! Time in uS
+    esp_sleep_enable_timer_wakeup(DEEP_SLEEP_TIME * 60 * 1000000);
+    // Go to sleep! Zzzz
+    esp_deep_sleep_start();
+}
+
 
 void callback(char *topic, byte *payload, unsigned int length) {
   String SONG_ID = "";
@@ -74,10 +87,10 @@ void setup() {
 
   for (int i = 0; WiFi.status() != WL_CONNECTED; i++) {
     delay(500);
-    Serial.print(".");
     if (i % 100 == 0) {
       Serial.println();
     }
+    Serial.print(".");
   }
 
   // Wi-Fi Connected, print IP to serial monitor
@@ -124,6 +137,7 @@ void loop() {
       audio.pauseResume();
       audio.connecttohost("none");
       Serial.println("stopped");
+      // TODO kontrola času či je po 15:15
     }
   }
 }
