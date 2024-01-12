@@ -4,7 +4,7 @@
 #include "Audio.h"
 #include "PubSubClient.h"
 
-#define DEEP_SLEEP_TIME 945 // * 15h 45min
+#define DEEP_SLEEP_TIME 945LL // * 15h 45min
 
 // Structure Config with default configuration parameters
 struct Config{
@@ -42,7 +42,7 @@ void goToDeepSleep()
 {
     Serial.println("Going to sleep...");
     // Configure the timer to wake us up! Time in uS
-    esp_sleep_enable_timer_wakeup(DEEP_SLEEP_TIME * 60 * 1000000);
+    esp_sleep_enable_timer_wakeup(DEEP_SLEEP_TIME * 60LL * 1000000LL);
     // Go to sleep! Zzzz
     esp_deep_sleep_start();
 }
@@ -138,6 +138,7 @@ void loop() {
       audio.connecttohost("none");
       Serial.println("stopped");
       // TODO kontrola času či je po 15:15
+
     }
   }
 }
