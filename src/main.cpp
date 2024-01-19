@@ -4,8 +4,6 @@
 #include "Audio.h"
 #include "PubSubClient.h"
 
-#define DEEP_SLEEP_TIME 945LL // * 15h 45min
-
 // Structure Config with default configuration parameters
 struct Config{
   // I2S
@@ -18,6 +16,7 @@ struct Config{
   //MQTT
   const char *MQTT_broker = "192.168.88.251";
   const char *MQTT_topic = "zvonenie";
+  const char *MQTT_topicSleep = "sleep";
   const char *MQTT_username = "espClient";
   const char *MQTT_password = "client123";
   const int MQTT_port = 1884;
@@ -38,42 +37,50 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 
-void goToDeepSleep()
+void goToDeepSleep(long long sleep_time)
 {
     Serial.println("Going to sleep...");
     // Configure the timer to wake us up! Time in uS
-    esp_sleep_enable_timer_wakeup(DEEP_SLEEP_TIME * 60LL * 1000000LL);
+    esp_sleep_enable_timer_wakeup(sleep_time * 60LL * 1000000LL);
     // Go to sleep! Zzzz
     esp_deep_sleep_start();
 }
 
 
 void callback(char *topic, byte *payload, unsigned int length) {
-  String SONG_ID = "";
   Serial.println("in call back");
-  for (int i = 0; i < length; i++) {
-        SONG_ID += (char) payload[i];
+  if (topic == "sleep") {
+    String time_to_sleep = "";
+    for (int i = 0; i < length; i++) {
+      time_to_sleep += (char) payload[i];
+    }
+    goToDeepSleep((long long)time_to_sleep.toInt());
   }
+  else if (topic == "zvonenie") {
+    String SONG_ID = "";
+    for (int i = 0; i < length; i++) {
+      SONG_ID += (char) payload[i];
+    }
   
-  String pathToSong = config.SONG_URL + SONG_ID;
+    String pathToSong = config.SONG_URL + SONG_ID;
   // Pripája sa
-  int fails = 0;
-  while (!audio.isRunning()) {
-    delay(10);
-    fails++;
-    audio.connecttohost(pathToSong.c_str());
-    if(fails == 10) {
-      break;
-    } 
-  }
-  audio.setVolume(config.AUDIO_volume);
-  // Run audio player
+    int fails = 0;
+    while (!audio.isRunning()) {
+      delay(10);
+      fails++;
+      audio.connecttohost(pathToSong.c_str());
+      if(fails == 10) {
+        break;
+      } 
+    }
+    audio.setVolume(config.AUDIO_volume);
+    // Run audio player
  
-  audio.loop();
-  if (!audio.isRunning()) {
-    Serial.println("koniec zvonenia");
+    audio.loop();
+    if (!audio.isRunning()) {
+      Serial.println("koniec zvonenia");
+    }
   }
-
 }
 
 void setup() {
@@ -116,6 +123,7 @@ void setup() {
     }
   }
   client.subscribe(config.MQTT_topic);
+  client.subscribe(config.MQTT_topicSleep);
   Serial.println(config.MQTT_topic);
 
   //Audio settings
