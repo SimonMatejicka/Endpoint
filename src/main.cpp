@@ -21,7 +21,7 @@ struct Config{
   const char *MQTT_password = "client123";
   const int MQTT_port = 1884;
   // Path to song
-  String SONG_URL = "http://192.168.88.253:80/zvonenie/";
+  String SONG_URL = "http://192.168.88.252:80/zvonenie/";
   // Audio
   int AUDIO_volume = 25;
   // Serial monitor boudrate
@@ -58,14 +58,14 @@ void callback(const char *topic, byte *payload, unsigned int length) {
     Serial.println(time_to_sleep);
     goToDeepSleep((long long)time_to_sleep.toInt());
   }
-  else if (topic == "zvonenie") {
+  else if (Stopic == "zvonenie") {
     String SONG_ID = "";
     for (int i = 0; i < length; i++) {
       SONG_ID += (char) payload[i];
     }
     Serial.println(SONG_ID);
     String pathToSong = config.SONG_URL + SONG_ID;
-  // Pripája sa
+    // Pripája sa
     int fails = 0;
     while (!audio.isRunning()) {
       delay(10);
