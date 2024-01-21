@@ -47,13 +47,15 @@ void goToDeepSleep(long long sleep_time)
 }
 
 
-void callback(char *topic, byte *payload, unsigned int length) {
+void callback(const char *topic, byte *payload, unsigned int length) {
   Serial.println("in call back");
-  if (topic == "sleep") {
+  String Stopic = topic;
+  if (Stopic == "sleep") {
     String time_to_sleep = "";
     for (int i = 0; i < length; i++) {
       time_to_sleep += (char) payload[i];
     }
+    Serial.println(time_to_sleep);
     goToDeepSleep((long long)time_to_sleep.toInt());
   }
   else if (topic == "zvonenie") {
@@ -61,7 +63,7 @@ void callback(char *topic, byte *payload, unsigned int length) {
     for (int i = 0; i < length; i++) {
       SONG_ID += (char) payload[i];
     }
-  
+    Serial.println(SONG_ID);
     String pathToSong = config.SONG_URL + SONG_ID;
   // Pripája sa
     int fails = 0;
@@ -81,6 +83,7 @@ void callback(char *topic, byte *payload, unsigned int length) {
       Serial.println("koniec zvonenia");
     }
   }
+  Serial.println("out call back");
 }
 
 void setup() {
