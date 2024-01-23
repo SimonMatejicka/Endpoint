@@ -6,10 +6,10 @@
 
 // Structure Config with default configuration parameters
 struct Config{
-  // I2S
-  int8_t I2S_Dout = 22;
-  int8_t I2S_Blck = 26;
-  int8_t I2S_Lrc = 25;
+  // I2S          // TODO: on board pin names 
+  int8_t I2S_Dout = 22; // DIN
+  int8_t I2S_Blck = 26; // BCK
+  int8_t I2S_Lrc = 25;  // LCK
   //Wi-Fi
   const char *WiFi_ssid = "Siet_rozhlas";
   const char *WiFi_password = "rozhlas123";
