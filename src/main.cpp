@@ -21,7 +21,8 @@ struct Config{
   const char *MQTT_password = "client123";
   const int MQTT_port = 1884;
   // Path to song
-  String SONG_URL = "http://192.168.88.252:80/zvonenie/";
+  //String SONG_URL = "http://192.168.88.252:80/zvonenie/";
+  String SONG_URL = "http://192.168.88.252/zvonenie/"; 
   // Audio
   int AUDIO_volume = 25;
   // Serial monitor boudrate
