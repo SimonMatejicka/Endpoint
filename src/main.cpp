@@ -38,20 +38,19 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 
-void goToDeepSleep(long long sleep_time)
+void goToDeepSleep(long long sleepTime)
 {
-    Serial.println("Going to sleep...");
     // Configure the timer to wake us up! Time in uS
-    esp_sleep_enable_timer_wakeup(sleep_time * 60LL * 1000000LL);
-    // Go to sleep! Zzzz
+    esp_sleep_enable_timer_wakeup(sleepTime * 60LL * 1000000LL);
     esp_deep_sleep_start();
 }
 
 
 void callback(const char *topic, byte *payload, unsigned int length) {
-  Serial.println("in call back");
-  String Stopic = topic;
-  if (Stopic == "sleep") {
+  String sTopic = topic;
+
+  // * funkcia na uspatie esp32
+  if (sTopic == "sleep") {
     String time_to_sleep = "";
     for (int i = 0; i < length; i++) {
       time_to_sleep += (char) payload[i];
@@ -59,32 +58,33 @@ void callback(const char *topic, byte *payload, unsigned int length) {
     Serial.println(time_to_sleep);
     goToDeepSleep((long long)time_to_sleep.toInt());
   }
-  else if (Stopic == "zvonenie") {
+
+  // * funkcia na zapnutie odberu audia
+  else if (sTopic == "zvonenie") {
     String SONG_ID = "";
     for (int i = 0; i < length; i++) {
       SONG_ID += (char) payload[i];
     }
-    Serial.println(SONG_ID);
-    String pathToSong = config.SONG_URL + SONG_ID;
+    String SONG_path = config.SONG_URL + SONG_ID;
     // Pripája sa
     int fails = 0;
     while (!audio.isRunning()) {
       delay(10);
       fails++;
-      audio.connecttohost(pathToSong.c_str());
+      audio.connecttohost(SONG_path.c_str());
       if(fails == 10) {
         break;
       } 
     }
     audio.setVolume(config.AUDIO_volume);
+
     // Run audio player
- 
     audio.loop();
+    // kontrolný výpis
     if (!audio.isRunning()) {
       Serial.println("koniec zvonenia");
     }
   }
-  Serial.println("out call back");
 }
 
 void setup() {
@@ -149,8 +149,6 @@ void loop() {
       audio.pauseResume();
       audio.connecttohost("none");
       Serial.println("stopped");
-      // TODO kontrola času či je po 15:15
-
     }
   }
 }
