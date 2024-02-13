@@ -15,8 +15,10 @@ struct Config{
   const char *WiFi_password = "rozhlas123";
   //MQTT
   const char *MQTT_broker = "192.168.88.251";
-  const char *MQTT_topic = "zvonenie";
+  const char *MQTT_topicRinging = "zvonenie";
   const char *MQTT_topicSleep = "sleep";
+  const char *MQTT_topicAdvertiseUnit = "units";
+        char *MQTT_topicUnit;
   const char *MQTT_username = "espClient";
   const char *MQTT_password = "client123";
   const int MQTT_port = 1884;
@@ -45,47 +47,8 @@ void goToDeepSleep(long long sleepTime)
     esp_deep_sleep_start();
 }
 
+void callback(const char *topic, byte *payload, unsigned int length);
 
-void callback(const char *topic, byte *payload, unsigned int length) {
-  String sTopic = topic;
-
-  // * funkcia na uspatie esp32
-  if (sTopic == "sleep") {
-    String time_to_sleep = "";
-    for (int i = 0; i < length; i++) {
-      time_to_sleep += (char) payload[i];
-    }
-    Serial.println(time_to_sleep);
-    goToDeepSleep((long long)time_to_sleep.toInt());
-  }
-
-  // * funkcia na zapnutie odberu audia
-  else if (sTopic == "zvonenie") {
-    String SONG_ID = "";
-    for (int i = 0; i < length; i++) {
-      SONG_ID += (char) payload[i];
-    }
-    String SONG_path = config.SONG_URL + SONG_ID;
-    // Pripája sa
-    int fails = 0;
-    while (!audio.isRunning()) {
-      delay(10);
-      fails++;
-      audio.connecttohost(SONG_path.c_str());
-      if(fails == 10) {
-        break;
-      } 
-    }
-    audio.setVolume(config.AUDIO_volume);
-
-    // Run audio player
-    audio.loop();
-    // kontrolný výpis
-    if (!audio.isRunning()) {
-      Serial.println("koniec zvonenia");
-    }
-  }
-}
 
 void setup() {
   // Start Serial Monitor
@@ -115,7 +78,7 @@ void setup() {
   client.setServer(config.MQTT_broker, config.MQTT_port);
   client.setCallback(callback);
   while (!client.connected()) {
-    String client_id = "esp32-client-";
+    String client_id = "esp32-";
     client_id += String(WiFi.macAddress());
     Serial.printf("The client %s connects to the public mqtt broker\n", client_id.c_str());
     if (client.connect(client_id.c_str(), config.MQTT_username, config.MQTT_password)) {
@@ -126,9 +89,17 @@ void setup() {
       delay(2000);
     }
   }
-  client.subscribe(config.MQTT_topic);
+  
+  Serial.println(config.MQTT_topicUnit);
+  client.publish(config.MQTT_topicAdvertiseUnit, WiFi.macAddress().c_str());
+
+  client.subscribe(config.MQTT_topicRinging);
   client.subscribe(config.MQTT_topicSleep);
-  Serial.println(config.MQTT_topic);
+  client.subscribe (WiFi.macAddress().c_str());
+
+Serial.println("............");
+  Serial.println(config.MQTT_topicUnit);
+Serial.println("............");
 
   //Audio settings
   // Connect MAX98357 I2S Amplifier Module
@@ -150,6 +121,56 @@ void loop() {
       audio.connecttohost("none");
       Serial.println("stopped");
     }
+  }
+}
+
+void callback(const char *topic, byte *payload, unsigned int length) {
+  String sTopic = topic;
+  Serial.print(sTopic);
+
+  // * funkcia na uspatie esp32
+  if (sTopic == config.MQTT_topicSleep) {
+    String time_to_sleep = "";
+    for (int i = 0; i < length; i++) {
+      time_to_sleep += (char) payload[i];
+    }
+    Serial.println(time_to_sleep);
+    goToDeepSleep((long long)time_to_sleep.toInt());
+  }
+
+  // * funkcia na zapnutie odberu audia
+  else if (sTopic == config.MQTT_topicRinging) {
+    String SONG_ID = "";
+    for (int i = 0; i < length; i++) {
+      SONG_ID += (char) payload[i];
+    }
+    String SONG_path = config.SONG_URL + SONG_ID;
+    // Pripája sa
+    int fails = 0;
+    while (!audio.isRunning()) {
+      delay(10);
+      fails++;
+      audio.connecttohost(SONG_path.c_str());
+      if(fails == 10) {
+        break;
+      } 
+    }
+    audio.setVolume(config.AUDIO_volume);
+
+    // Run audio player
+    audio.loop();
+    // kontrolný výpis
+    if (!audio.isRunning()) {
+      Serial.println("koniec zvonenia");
+    }
+  }
+
+  else if (sTopic == WiFi.macAddress().c_str()){
+    String controlPARAM = "";
+    for (int i = 0; i < length; i++) {
+      controlPARAM += (char) payload[i];
+    }
+    Serial.println(controlPARAM);
   }
 }
 
