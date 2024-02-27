@@ -90,16 +90,11 @@ void setup() {
     }
   }
   
-  Serial.println(config.MQTT_topicUnit);
   client.publish(config.MQTT_topicAdvertiseUnit, WiFi.macAddress().c_str());
 
   client.subscribe(config.MQTT_topicRinging);
   client.subscribe(config.MQTT_topicSleep);
-  client.subscribe (WiFi.macAddress().c_str());
-
-Serial.println("............");
-  Serial.println(config.MQTT_topicUnit);
-Serial.println("............");
+  client.subscribe(WiFi.macAddress().c_str()); 
 
   //Audio settings
   // Connect MAX98357 I2S Amplifier Module
