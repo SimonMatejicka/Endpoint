@@ -19,6 +19,7 @@ struct Config{
   const char *MQTT_topicSleep = "sleep";
   const char *MQTT_topicAdvertiseUnit = "units";
         char *MQTT_topicUnit;
+  const char *MQTT_topicControl = "control";
   const char *MQTT_username = "espClient";
   const char *MQTT_password = "client123";
   const int MQTT_port = 1884;
@@ -94,6 +95,7 @@ void setup() {
 
   client.subscribe(config.MQTT_topicRinging);
   client.subscribe(config.MQTT_topicSleep);
+  client.subscribe(config.MQTT_topicControl);
   client.subscribe(WiFi.macAddress().c_str()); 
 
   //Audio settings
@@ -121,10 +123,22 @@ void loop() {
 
 void callback(const char *topic, byte *payload, unsigned int length) {
   String sTopic = topic;
-  Serial.print(sTopic);
+  Serial.println(sTopic);
+
+  // * glob8lne riadenie
+  if (sTopic == config.MQTT_topicControl){
+    String command = "";
+    for (int i = 0; i < length; i++) {
+      command += (char) payload[i];
+    }
+    if (command == "here"){
+      Serial.println("here");
+      client.publish(config.MQTT_topicAdvertiseUnit, WiFi.macAddress().c_str());
+    }
+  }
 
   // * funkcia na uspatie esp32
-  if (sTopic == config.MQTT_topicSleep) {
+  else if (sTopic == config.MQTT_topicSleep) {
     String time_to_sleep = "";
     for (int i = 0; i < length; i++) {
       time_to_sleep += (char) payload[i];
