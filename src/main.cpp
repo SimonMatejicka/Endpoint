@@ -3,34 +3,166 @@
 #include "WiFi.h"
 #include "Audio.h"
 #include "PubSubClient.h"
+#include <SPIFFSIniFile.h>
+#include "FS.h"
+
+inline String read_Config(const char* section, const char* key);
+void callback(const char *topic, byte *payload, unsigned int length);
+void printErrorMessage(uint8_t e, bool eol = true);
+
+inline void goToDeepSleep(long long sleepTime)
+{
+  // Configure the timer to wake us up! Time in uS
+  esp_sleep_enable_timer_wakeup(sleepTime * 60LL * 1000000LL);
+  esp_deep_sleep_start();
+}
 
 // Structure Config with default configuration parameters
 struct Config{
   // I2S          // TODO: on board pin names 
-  int8_t I2S_Dout = 22; // DIN
-  int8_t I2S_Blck = 26; // BCK
-  int8_t I2S_Lrc = 25;  // LCK
-  //Wi-Fi
-  const char *WiFi_ssid = "Siet_rozhlas";
-  const char *WiFi_password = "rozhlas123";
-  //MQTT
-  const char *MQTT_broker = "192.168.88.251";
-  const char *MQTT_topicRinging = "zvonenie";
-  const char *MQTT_topicSleep = "sleep";
-  const char *MQTT_topicAdvertiseUnit = "units";
-        char *MQTT_topicUnit;
-  const char *MQTT_topicControl = "control";
-  const char *MQTT_username = "espClient";
-  const char *MQTT_password = "client123";
-  const int MQTT_port = 1884;
-  // Path to song
-  //String SONG_URL = "http://192.168.88.252:80/zvonenie/";
-  String SONG_URL = "http://192.168.88.252/zvonenie/"; 
-  // Audio
-  int AUDIO_volume = 25;
-  // Serial monitor boudrate
-  int SERIAL_boudrate = 115200;
+  protected:
+    int8_t I2S_Dout = 22; // DIN
+    int8_t I2S_Blck = 26; // BCK
+    int8_t I2S_Lrc = 25;  // LCK
+  private:
+    //Wi-Fi
+    const char *WiFi_ssid = "Siet_rozhlas";
+    const char *WiFi_password = "rozhlas123";
+    const //MQTT
+    const char *MQTT_broker = "192.168.88.251";
+    const char *MQTT_topicRinging = "zvonenie";
+    const char *MQTT_topicSleep = "sleep";
+    const char *MQTT_topicAdvertiseUnit = "units";
+    const char *MQTT_topicUnit;
+    const char *MQTT_topicControl = "control";
+    const char *MQTT_username = "espClient";
+    const char *MQTT_password = "client123";
+    int MQTT_port = 1884;
+    // Path to song
+    String SONG_URL = "http://192.168.88.252/zvonenie/"; 
+    // Audio
+    int AUDIO_volume = 25;
+    // *during night
+    //int AUDIO_volume = 2;
+    // Serial monitor boudrate
+    int SERIAL_baudrate = 115200;
+
+  public:
+    inline int8_t get_I2S_Dout(){
+      return I2S_Dout;
+    }
+    inline int8_t get_I2S_Blck(){
+      return I2S_Blck;
+    }
+    inline int8_t get_I2S_Lrc(){
+      return I2S_Lrc;
+    }
+    // WiFi configuration
+    inline const char* get_WiFi_ssid(){
+      return WiFi_ssid;
+    }
+    inline const char* get_WiFi_password(){
+      return WiFi_password;
+    }
+    // MQTT Configuration
+    inline const char* get_MQTT_Broker() {
+        return MQTT_broker;
+    }
+    inline const char* get_MQTT_Topic_Ringing() {
+        return MQTT_topicRinging;
+    }
+    inline const char* get_MQTT_Topic_Sleep() {
+        return MQTT_topicSleep;
+    }
+    inline const char* get_MQTT_Topic_Advertise_Unit() {
+        return MQTT_topicAdvertiseUnit;
+    }
+    inline const char* get_MQTT_Topic_Unit() {
+        return MQTT_topicUnit;
+    }
+    inline const char* get_MQTT_Topic_Control() {
+        return MQTT_topicControl;
+    }
+    inline const char* get_MQTT_Username() {
+        return MQTT_username;
+    }
+    inline const char* get_MQTT_Password() {
+        return MQTT_password;
+    }
+    inline int get_MQTT_Port() {
+        return MQTT_port;
+    }
+    // Song URL Configuration
+    inline String get_Song_URL() {
+        return SONG_URL;
+    }
+    // Audio Configuration
+    inline int get_Audio_Volume() {
+        return AUDIO_volume;
+    }
+    // Serial Configuration
+    inline int get_Serial_Baudrate() {
+        return SERIAL_baudrate;
+    }
+
+    // WiFi Configuration
+    inline void setWiFiSSID() {
+        WiFi_ssid = read_Config("WiFi", "ssid").c_str();
+    }
+
+    inline void setWiFiPassword() {
+        WiFi_password = read_Config("WiFi", "password").c_str();
+    }
+
+    // MQTT Configuration
+    inline void setMQTTBroker() {
+        MQTT_broker = read_Config("MQTT", "broker").c_str();
+    }
+
+    inline void setMQTTTopicRinging() {
+        MQTT_topicRinging = read_Config("MQTT", "topicRinging").c_str();
+    }
+
+    inline void setMQTTTopicSleep() {
+        MQTT_topicSleep = read_Config("MQTT", "topisSleep").c_str();
+    }
+
+    inline void setMQTTTopicAdvertiseUnit() {
+        MQTT_topicAdvertiseUnit = read_Config("MQTT", "topiecAdvertiseUnit").c_str();
+    }
+
+    inline void setMQTTTopicUnit() {
+        MQTT_topicUnit = read_Config("MQTT", "topicControl").c_str();
+    }
+
+    inline void setMQTTTopicControl() {
+        MQTT_topicControl = read_Config("MQTT", "topicControl").c_str();
+    }
+
+    inline void setMQTTUsername() {
+        MQTT_username = read_Config("MQTT", "username").c_str();
+    }
+
+    inline void setMQTTPassword() {
+        MQTT_password = read_Config("MQTT", "password").c_str();
+    }
+
+    inline void setMQTTPort() {
+        MQTT_port = atoi(read_Config("MQTT", "port").c_str());
+    }
+
+    // Song URL Configuration
+    inline void setSongURL() {
+        SONG_URL = read_Config("URL", "song");
+    }
+
 };
+
+// Create file object for reading configuration.ini
+const size_t bufferLen = 80;
+char buffer[bufferLen];
+const char *file = "/conf.ini";
+SPIFFSIniFile ini(file);
 
 // Create config object
 Config config;
@@ -40,25 +172,15 @@ Audio audio;
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-
-void goToDeepSleep(long long sleepTime)
-{
-    // Configure the timer to wake us up! Time in uS
-    esp_sleep_enable_timer_wakeup(sleepTime * 60LL * 1000000LL);
-    esp_deep_sleep_start();
-}
-
-void callback(const char *topic, byte *payload, unsigned int length);
-
-
+// SETUP // * ///////////////////////////////////////////////////////////////////
 void setup() {
   // Start Serial Monitor
-  Serial.begin(config.SERIAL_boudrate);
+  Serial.begin(config.get_Serial_Baudrate());
 
   // Setup WiFi in Station mode
   WiFi.disconnect();
   WiFi.mode(WIFI_STA);
-  WiFi.begin(config.WiFi_ssid, config.WiFi_password);
+  WiFi.begin(config.get_WiFi_ssid(), config.get_WiFi_password());
 
   for (int i = 0; WiFi.status() != WL_CONNECTED; i++) {
     delay(500);
@@ -76,14 +198,14 @@ void setup() {
   Serial.println("");
 
   //connecting to a MQTT broker
-  client.setServer(config.MQTT_broker, config.MQTT_port);
+  client.setServer(config.get_MQTT_Broker(), config.get_MQTT_Port());
   client.setCallback(callback);
   while (!client.connected()) {
     String client_id = "esp32-";
     client_id += String(WiFi.macAddress());
     Serial.printf("The client %s connects to the public mqtt broker\n", client_id.c_str());
-    if (client.connect(client_id.c_str(), config.MQTT_username, config.MQTT_password)) {
-      Serial.println("Public emqx mqtt broker connected");
+    if (client.connect(client_id.c_str(), config.get_MQTT_Username(), config.get_MQTT_Password())) {
+      Serial.println("Private mqtt broker connected");
     } else {
       Serial.print("failed with state ");
       Serial.print(client.state());
@@ -91,54 +213,81 @@ void setup() {
     }
   }
   
-  client.publish(config.MQTT_topicAdvertiseUnit, WiFi.macAddress().c_str());
+  client.publish(config.get_MQTT_Topic_Advertise_Unit(), WiFi.macAddress().c_str());
 
-  client.subscribe(config.MQTT_topicRinging);
-  client.subscribe(config.MQTT_topicSleep);
-  client.subscribe(config.MQTT_topicControl);
+  client.subscribe(config.get_MQTT_Topic_Ringing());
+  client.subscribe(config.get_MQTT_Topic_Sleep());
+  client.subscribe(config.get_MQTT_Topic_Control());
   client.subscribe(WiFi.macAddress().c_str()); 
 
   //Audio settings
   // Connect MAX98357 I2S Amplifier Module
-  audio.setPinout(config.I2S_Blck, config.I2S_Lrc, config.I2S_Dout);
+  audio.setPinout(config.get_I2S_Blck(), config.get_I2S_Lrc(), config.get_I2S_Dout());
   // Set thevolume (0-100)
-  audio.setVolume(config.AUDIO_volume);
+  audio.setVolume(config.get_Audio_Volume());
+
+  //Mount the SPIFFS  
+  if (!SPIFFS.begin())
+    while (1)
+      Serial.println("SPIFFS.begin() failed");
+  
+  if (!ini.open()) {
+    Serial.print("configuration file ");
+    Serial.print(file);
+    Serial.println(" does not exist");
+    // Cannot do anything else
+    while (1)
+      ;
+  }
+  Serial.println("configuration file exists");
+  if (!ini.validate(buffer, bufferLen)) {
+    Serial.print("Ini file ");
+    Serial.print(ini.getFilename());
+    Serial.print(" not valid: ");
+    printErrorMessage(ini.getError());
+    // Cannot do anything else
+    while (1)
+      ;
+  }
 }
-
-
 
 void loop() {
   client.loop();
   audio.loop();
   if (audio.getAudioCurrentTime() >= 20){
-    audio.setVolume(config.AUDIO_volume - (audio.getAudioCurrentTime() - 20));
-    Serial.println(config.AUDIO_volume - (audio.getAudioCurrentTime() - 20)); // audio fade out
-    if(config.AUDIO_volume - (audio.getAudioCurrentTime() - 20) <= 1){
-      audio.pauseResume();
+    audio.setVolume(config.get_Audio_Volume() - (audio.getAudioCurrentTime() - 20));
+    Serial.println(config.get_Audio_Volume() - (audio.getAudioCurrentTime() - 20)); // audio fade out
+    if(config.get_Audio_Volume() - (audio.getAudioCurrentTime() - 20) <= 1){
+      audio.stopSong();
       audio.connecttohost("none");
       Serial.println("stopped");
     }
   }
 }
 
+inline String read_Config(const char* section, const char* key){
+  ini.getValue(section, key, buffer, bufferLen);
+  return buffer;
+}
+
 void callback(const char *topic, byte *payload, unsigned int length) {
   String sTopic = topic;
   Serial.println(sTopic);
 
-  // * glob8lne riadenie
-  if (sTopic == config.MQTT_topicControl){
+  // * globálne riadenie
+  if (sTopic == config.get_MQTT_Topic_Control()){
     String command = "";
     for (int i = 0; i < length; i++) {
       command += (char) payload[i];
     }
     if (command == "here"){
       Serial.println("here");
-      client.publish(config.MQTT_topicAdvertiseUnit, WiFi.macAddress().c_str());
+      client.publish(config.get_MQTT_Topic_Advertise_Unit(), WiFi.macAddress().c_str());
     }
   }
 
   // * funkcia na uspatie esp32
-  else if (sTopic == config.MQTT_topicSleep) {
+  else if (sTopic == config.get_MQTT_Topic_Sleep()) {
     String time_to_sleep = "";
     for (int i = 0; i < length; i++) {
       time_to_sleep += (char) payload[i];
@@ -148,12 +297,13 @@ void callback(const char *topic, byte *payload, unsigned int length) {
   }
 
   // * funkcia na zapnutie odberu audia
-  else if (sTopic == config.MQTT_topicRinging) {
+  // TODO: dočasne daktivované
+  else if (sTopic == config.get_MQTT_Topic_Ringing()) {
     String SONG_ID = "";
     for (int i = 0; i < length; i++) {
       SONG_ID += (char) payload[i];
     }
-    String SONG_path = config.SONG_URL + SONG_ID;
+    String SONG_path = config.get_Song_URL() + SONG_ID;
     // Pripája sa
     int fails = 0;
     while (!audio.isRunning()) {
@@ -164,7 +314,7 @@ void callback(const char *topic, byte *payload, unsigned int length) {
         break;
       } 
     }
-    audio.setVolume(config.AUDIO_volume);
+    audio.setVolume(config.get_Audio_Volume());
 
     // Run audio player
     audio.loop();
@@ -181,6 +331,44 @@ void callback(const char *topic, byte *payload, unsigned int length) {
     }
     Serial.println(controlPARAM);
   }
+}
+
+void printErrorMessage(uint8_t e, bool eol = true)
+{
+  switch (e) {
+  case SPIFFSIniFile::errorNoError:
+    Serial.print("no error");
+    break;
+  case SPIFFSIniFile::errorFileNotFound:
+    Serial.print("file not found");
+    break;
+  case SPIFFSIniFile::errorFileNotOpen:
+    Serial.print("file not open");
+    break;
+  case SPIFFSIniFile::errorBufferTooSmall:
+    Serial.print("buffer too small");
+    break;
+  case SPIFFSIniFile::errorSeekError:
+    Serial.print("seek error");
+    break;
+  case SPIFFSIniFile::errorSectionNotFound:
+    Serial.print("section not found");
+    break;
+  case SPIFFSIniFile::errorKeyNotFound:
+    Serial.print("key not found");
+    break;
+  case SPIFFSIniFile::errorEndOfFile:
+    Serial.print("end of file");
+    break;
+  case SPIFFSIniFile::errorUnknownError:
+    Serial.print("unknown error");
+    break;
+  default:
+    Serial.print("unknown error value");
+    break;
+  }
+  if (eol)
+    Serial.println();
 }
 
 // Audio status functions
