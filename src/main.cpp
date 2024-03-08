@@ -371,10 +371,6 @@ void printErrorMessage(uint8_t e, bool eol = true)
     Serial.println();
 }
 
-// Audio status functions
-// ! treba preriediť !!!!
-// TODO: vyčistiť
-
 void audio_info(const char *info) {
   Serial.print("info        ");
   Serial.println(info);
