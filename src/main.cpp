@@ -26,20 +26,20 @@ struct Config{
     int8_t I2S_Lrc = 25;  // LCK
   private:
     //Wi-Fi
-    const char *WiFi_ssid = "Siet_rozhlas";
-    const char *WiFi_password = "rozhlas123";
+    const char *WiFi_ssid;
+    const char *WiFi_password;
     const //MQTT
-    const char *MQTT_broker = "192.168.88.251";
-    const char *MQTT_topicRinging = "zvonenie";
-    const char *MQTT_topicSleep = "sleep";
-    const char *MQTT_topicAdvertiseUnit = "units";
+    const char *MQTT_broker;
+    const char *MQTT_topicRinging;
+    const char *MQTT_topicSleep;
+    const char *MQTT_topicAdvertiseUnit;
     const char *MQTT_topicUnit;
-    const char *MQTT_topicControl = "control";
-    const char *MQTT_username = "espClient";
-    const char *MQTT_password = "client123";
-    int MQTT_port = 1884;
+    const char *MQTT_topicControl;
+    const char *MQTT_username;
+    const char *MQTT_password;
+    int MQTT_port;
     // Path to song
-    String SONG_URL = "http://192.168.88.252/zvonenie/"; 
+    String SONG_URL; 
     // Audio
     int AUDIO_volume = 25;
     // *during night
