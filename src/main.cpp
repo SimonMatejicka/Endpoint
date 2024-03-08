@@ -6,8 +6,8 @@
 #include <SPIFFSIniFile.h>
 #include "FS.h"
 
-inline const char* read_Config(const char* section, const char* key);
 void callback(const char *topic, byte *payload, unsigned int length);
+inline const char* read_Config(const char* section, const char* key);
 void printErrorMessage(uint8_t e, bool eol = true);
 
 inline void goToDeepSleep(long long sleepTime)
@@ -42,12 +42,75 @@ struct Config{
     String SONG_URL; 
     // Audio
     int AUDIO_volume = 25;
-    // *during night
-    //int AUDIO_volume = 2;
     // Serial monitor boudrate
     int SERIAL_baudrate = 115200;
 
+    // WiFi Configuration
+    inline void set_WiFi_SSID() {
+        WiFi_ssid = read_Config("WiFi", "ssid");
+    }
+
+    inline void set_WiFi_Password() {
+        WiFi_password = read_Config("WiFi", "password");
+    }
+
+    // MQTT Configuration
+    inline void set_MQTT_Broker() {
+        MQTT_broker = read_Config("MQTT", "broker");
+    }
+
+    inline void set_MQTT_Topic_Ringing() {
+        MQTT_topicRinging = read_Config("MQTT", "topicRinging");
+    }
+
+    inline void set_MQTT_Topic_Sleep() {
+        MQTT_topicSleep = read_Config("MQTT", "topisSleep");
+    }
+
+    inline void set_MQTT_Topic_Advertise_Unit() {
+        MQTT_topicAdvertiseUnit = read_Config("MQTT", "topiecAdvertiseUnit");
+    }
+
+    inline void set_MQTT_Topic_Unit() {
+        MQTT_topicUnit = read_Config("MQTT", "topicControl");
+    }
+
+    inline void set_MQTT_Topic_Control() {
+        MQTT_topicControl = read_Config("MQTT", "topicControl");
+    }
+
+    inline void set_MQTT_Username() {
+        MQTT_username = read_Config("MQTT", "username");
+    }
+
+    inline void set_MQTT_Password() {
+        MQTT_password = read_Config("MQTT", "password");
+    }
+
+    inline void set_MQTT_Port() {
+        MQTT_port = atoi(read_Config("MQTT", "port"));
+    }
+
+    // Song URL Configuration
+    inline void set_Song_URL() {
+        SONG_URL = read_Config("URL", "song");
+    }
+
   public:
+    inline void setting(){
+      set_WiFi_Password();
+      set_WiFi_SSID();
+      set_MQTT_Broker();
+      set_MQTT_Topic_Ringing();
+      set_MQTT_Topic_Sleep();
+      set_MQTT_Topic_Advertise_Unit();
+      set_MQTT_Topic_Control();
+      set_MQTT_Username();
+      set_MQTT_Password();
+      set_MQTT_Port();
+      set_Song_URL();
+    }
+
     inline int8_t get_I2S_Dout(){
       return I2S_Dout;
     }
@@ -104,58 +167,6 @@ struct Config{
     inline int get_Serial_Baudrate() {
         return SERIAL_baudrate;
     }
-
-    // WiFi Configuration
-    inline void setWiFiSSID() {
-        WiFi_ssid = read_Config("WiFi", "ssid");
-    }
-
-    inline void setWiFiPassword() {
-        WiFi_password = read_Config("WiFi", "password");
-    }
-
-    // MQTT Configuration
-    inline void setMQTTBroker() {
-        MQTT_broker = read_Config("MQTT", "broker");
-    }
-
-    inline void setMQTTTopicRinging() {
-        MQTT_topicRinging = read_Config("MQTT", "topicRinging");
-    }
-
-    inline void setMQTTTopicSleep() {
-        MQTT_topicSleep = read_Config("MQTT", "topisSleep");
-    }
-
-    inline void setMQTTTopicAdvertiseUnit() {
-        MQTT_topicAdvertiseUnit = read_Config("MQTT", "topiecAdvertiseUnit");
-    }
-
-    inline void setMQTTTopicUnit() {
-        MQTT_topicUnit = read_Config("MQTT", "topicControl");
-    }
-
-    inline void setMQTTTopicControl() {
-        MQTT_topicControl = read_Config("MQTT", "topicControl");
-    }
-
-    inline void setMQTTUsername() {
-        MQTT_username = read_Config("MQTT", "username");
-    }
-
-    inline void setMQTTPassword() {
-        MQTT_password = read_Config("MQTT", "password");
-    }
-
-    inline void setMQTTPort() {
-        MQTT_port = atoi(read_Config("MQTT", "port"));
-    }
-
-    // Song URL Configuration
-    inline void setSongURL() {
-        SONG_URL = read_Config("URL", "song");
-    }
-
 };
 
 // Create file object for reading configuration.ini
@@ -174,6 +185,8 @@ PubSubClient client(espClient);
 
 // SETUP // * ///////////////////////////////////////////////////////////////////
 void setup() {
+  config.setting();
+
   // Start Serial Monitor
   Serial.begin(config.get_Serial_Baudrate());
 
@@ -235,16 +248,18 @@ void setup() {
     Serial.print("configuration file ");
     Serial.print(file);
     Serial.println(" does not exist");
+    Serial.println("Fix it and restart the program");
     // Cannot do anything else
     while (1)
       ;
   }
   Serial.println("configuration file exists");
   if (!ini.validate(buffer, bufferLen)) {
-    Serial.print("Ini file ");
+    Serial.print("configuration file ");
     Serial.print(ini.getFilename());
     Serial.print(" not valid: ");
     printErrorMessage(ini.getError());
+    Serial.println("Fix it and restart the program");
     // Cannot do anything else
     while (1)
       ;
@@ -263,11 +278,6 @@ void loop() {
       Serial.println("stopped");
     }
   }
-}
-
-inline const char* read_Config(const char* section, const char* key){
-  ini.getValue(section, key, buffer, bufferLen);
-  return buffer;
 }
 
 void callback(const char *topic, byte *payload, unsigned int length) {
@@ -331,6 +341,11 @@ void callback(const char *topic, byte *payload, unsigned int length) {
     }
     Serial.println(controlPARAM);
   }
+}
+
+inline const char* read_Config(const char* section, const char* key){
+  ini.getValue(section, key, buffer, bufferLen);
+  return buffer;
 }
 
 void printErrorMessage(uint8_t e, bool eol = true)
