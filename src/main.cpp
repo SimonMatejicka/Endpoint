@@ -6,7 +6,7 @@
 #include <SPIFFSIniFile.h>
 #include "FS.h"
 
-inline String read_Config(const char* section, const char* key);
+inline const char* read_Config(const char* section, const char* key);
 void callback(const char *topic, byte *payload, unsigned int length);
 void printErrorMessage(uint8_t e, bool eol = true);
 
@@ -107,48 +107,48 @@ struct Config{
 
     // WiFi Configuration
     inline void setWiFiSSID() {
-        WiFi_ssid = read_Config("WiFi", "ssid").c_str();
+        WiFi_ssid = read_Config("WiFi", "ssid");
     }
 
     inline void setWiFiPassword() {
-        WiFi_password = read_Config("WiFi", "password").c_str();
+        WiFi_password = read_Config("WiFi", "password");
     }
 
     // MQTT Configuration
     inline void setMQTTBroker() {
-        MQTT_broker = read_Config("MQTT", "broker").c_str();
+        MQTT_broker = read_Config("MQTT", "broker");
     }
 
     inline void setMQTTTopicRinging() {
-        MQTT_topicRinging = read_Config("MQTT", "topicRinging").c_str();
+        MQTT_topicRinging = read_Config("MQTT", "topicRinging");
     }
 
     inline void setMQTTTopicSleep() {
-        MQTT_topicSleep = read_Config("MQTT", "topisSleep").c_str();
+        MQTT_topicSleep = read_Config("MQTT", "topisSleep");
     }
 
     inline void setMQTTTopicAdvertiseUnit() {
-        MQTT_topicAdvertiseUnit = read_Config("MQTT", "topiecAdvertiseUnit").c_str();
+        MQTT_topicAdvertiseUnit = read_Config("MQTT", "topiecAdvertiseUnit");
     }
 
     inline void setMQTTTopicUnit() {
-        MQTT_topicUnit = read_Config("MQTT", "topicControl").c_str();
+        MQTT_topicUnit = read_Config("MQTT", "topicControl");
     }
 
     inline void setMQTTTopicControl() {
-        MQTT_topicControl = read_Config("MQTT", "topicControl").c_str();
+        MQTT_topicControl = read_Config("MQTT", "topicControl");
     }
 
     inline void setMQTTUsername() {
-        MQTT_username = read_Config("MQTT", "username").c_str();
+        MQTT_username = read_Config("MQTT", "username");
     }
 
     inline void setMQTTPassword() {
-        MQTT_password = read_Config("MQTT", "password").c_str();
+        MQTT_password = read_Config("MQTT", "password");
     }
 
     inline void setMQTTPort() {
-        MQTT_port = atoi(read_Config("MQTT", "port").c_str());
+        MQTT_port = atoi(read_Config("MQTT", "port"));
     }
 
     // Song URL Configuration
@@ -265,7 +265,7 @@ void loop() {
   }
 }
 
-inline String read_Config(const char* section, const char* key){
+inline const char* read_Config(const char* section, const char* key){
   ini.getValue(section, key, buffer, bufferLen);
   return buffer;
 }
