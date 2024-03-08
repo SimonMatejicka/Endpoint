@@ -26,17 +26,17 @@ struct Config{
     int8_t I2S_Lrc = 25;  // LCK
   private:
     //Wi-Fi
-    const char *WiFi_ssid;
-    const char *WiFi_password;
-    const //MQTT
-    const char *MQTT_broker;
-    const char *MQTT_topicRinging;
-    const char *MQTT_topicSleep;
-    const char *MQTT_topicAdvertiseUnit;
-    const char *MQTT_topicUnit;
-    const char *MQTT_topicControl;
-    const char *MQTT_username;
-    const char *MQTT_password;
+    const char* WiFi_ssid;
+    const char* WiFi_password;
+    //MQTT
+    const char* MQTT_broker;
+    const char* MQTT_topicRinging;
+    const char* MQTT_topicSleep;
+    const char* MQTT_topicAdvertiseUnit;
+    const char* MQTT_topicUnit;
+    const char* MQTT_topicControl;
+    const char* MQTT_username;
+    const char* MQTT_password;
     int MQTT_port;
     // Path to song
     String SONG_URL; 
