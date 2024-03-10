@@ -1,4 +1,5 @@
 // Include required libraries
+#include "SPIFFS.h"
 #include "Arduino.h"
 #include "WiFi.h"
 #include "Audio.h"
@@ -41,13 +42,14 @@ struct Config{
     String MQTT_topicAdvertiseUnit;
     String MQTT_topicUnit;
     String MQTT_topicControl;
+    String MQTT_topicCall;
     String MQTT_username;
     String MQTT_password;
     int MQTT_port;
     // Path to song
     String SONG_URL; 
     // Audio
-    int AUDIO_volume = 25;
+    int AUDIO_volume = 35;
     // Serial monitor boudrate
     int SERIAL_baudrate = 115200;
 
@@ -68,16 +70,19 @@ struct Config{
       MQTT_topicRinging = read_Config("MQTT", "topicRinging");
     }
     void set_MQTT_Topic_Sleep() {
-      MQTT_topicSleep = read_Config("MQTT", "topisSleep");
+      MQTT_topicSleep = read_Config("MQTT", "topicSleep");
     }
     void set_MQTT_Topic_Advertise_Unit() {
-      MQTT_topicAdvertiseUnit = read_Config("MQTT", "topiecAdvertiseUnit");
+      MQTT_topicAdvertiseUnit = read_Config("MQTT", "topicAdvertiseUnit");
     }
     void set_MQTT_Topic_Unit() {
-      MQTT_topicUnit = read_Config("MQTT", "topicControl");
+      MQTT_topicUnit = WiFi.macAddress();
     }
     void set_MQTT_Topic_Control() {
       MQTT_topicControl = read_Config("MQTT", "topicControl");
+    }
+    void set_MQTT_Topic_Call() {
+      MQTT_topicCall = read_Config("MQTT", "topicCall");
     }
     void set_MQTT_Username() {
       MQTT_username = read_Config("MQTT", "username");
@@ -102,6 +107,7 @@ struct Config{
       set_MQTT_Topic_Ringing();
       set_MQTT_Topic_Sleep();
       set_MQTT_Topic_Advertise_Unit();
+      set_MQTT_Topic_Unit();
       set_MQTT_Topic_Control();
       set_MQTT_Username();
       set_MQTT_Password();
@@ -146,6 +152,9 @@ struct Config{
     String get_MQTT_Topic_Control() {
       return MQTT_topicControl;
     }
+    String get_MQTT_Topic_Call() {
+      return MQTT_topicCall;
+    }
     String get_MQTT_Username() {
       return MQTT_username;
     }
@@ -179,6 +188,7 @@ Audio audio;
 // Create WI-Fi client object and MQTT client object
 WiFiClient espClient;
 PubSubClient client(espClient);
+bool call = false;
 
 // SETUP // * ///////////////////////////////////////////////////////////////////
 void setup() {
@@ -208,7 +218,7 @@ void setup() {
     while (1)
       ;
   }
-  
+
   config.set_Network();
   
   // Setup WiFi in Station mode
@@ -239,6 +249,7 @@ void setup() {
     Serial.printf("The client %s connects to the public mqtt broker\n", client_id.c_str());
     if (client.connect(client_id.c_str(), config.get_MQTT_Username().c_str(), config.get_MQTT_Password().c_str())) {
       Serial.println("Private mqtt broker connected");
+      Serial.println(client.state());
     } else {
       Serial.print("failed with state ");
       Serial.print(client.state());
@@ -246,12 +257,28 @@ void setup() {
     }
   }
   
+  Serial.println(config.get_WiFi_SSID().c_str());
+  Serial.println(config.get_WiFi_Password().c_str());
+  Serial.println(config.get_MQTT_Broker().c_str());
+  Serial.println(config.get_MQTT_Topic_Ringing().c_str());
+  Serial.println(config.get_MQTT_Topic_Sleep().c_str());
+  Serial.println(config.get_MQTT_Topic_Advertise_Unit().c_str());
+  Serial.println(config.get_MQTT_Topic_Control().c_str());
+  Serial.println(config.get_MQTT_Topic_Call().c_str());
+  Serial.println(config.get_MQTT_Username().c_str());
+  Serial.println(config.get_MQTT_Password().c_str());
+  Serial.println(config.get_MQTT_Port());
+  Serial.println(config.get_Song_URL().c_str());
+
   client.publish(config.get_MQTT_Topic_Advertise_Unit().c_str(), WiFi.macAddress().c_str());
 
   client.subscribe(config.get_MQTT_Topic_Ringing().c_str());
   client.subscribe(config.get_MQTT_Topic_Sleep().c_str());
   client.subscribe(config.get_MQTT_Topic_Control().c_str());
-  client.subscribe(WiFi.macAddress().c_str()); 
+ // client.subscribe(config.get_MQTT_Topic_Call().c_str());
+  client.subscribe(config.get_MQTT_Topic_Unit().c_str());
+
+  client.subscribe("live");
 
   //Audio settings
   // Connect MAX98357 I2S Amplifier Module
@@ -263,10 +290,11 @@ void setup() {
 void loop() {
   client.loop();
   audio.loop();
-  if (audio.getAudioCurrentTime() >= 20){
+  if (audio.getAudioCurrentTime() >= 20 && !call){
     audio.setVolume(config.get_Audio_Volume() - (audio.getAudioCurrentTime() - 20));
     Serial.println(config.get_Audio_Volume() - (audio.getAudioCurrentTime() - 20)); // audio fade out
-    if(config.get_Audio_Volume() - (audio.getAudioCurrentTime() - 20) <= 1){
+    if(true){
+    //if(config.get_Audio_Volume() - (audio.getAudioCurrentTime() - 20) <= 1){
       audio.stopSong();
       audio.connecttohost("none");
       Serial.println("stopped");
@@ -328,7 +356,48 @@ void callback(const char *topic, byte *payload, unsigned int length) {
     }
   }
 
-  else if (sTopic == WiFi.macAddress().c_str()){
+  else if (sTopic == config.get_MQTT_Topic_Call()){
+    String CALL_ID = "";
+    for (int i = 0; i < length; i++) {
+      CALL_ID += (char) payload[i];
+    }
+    String SONG_path = config.get_Song_URL() + CALL_ID;
+    // Pripája sa
+    int fails = 0;
+    while (!audio.isRunning()) {
+      delay(10);
+      fails++;
+      audio.connecttohost(SONG_path.c_str());
+      if(fails == 10) {
+        break;
+      } 
+    }
+    audio.setVolume(config.get_Audio_Volume());
+
+    // Run audio player
+    audio.loop();
+    // kontrolný výpis
+    if (!audio.isRunning()) {
+      Serial.println("koniec zvonenia");
+    }
+  }
+  else if (sTopic == "live"){
+    String live = "";
+    for (int i = 0; i < length; i++) {
+      live += (char) payload[i];
+    }
+    audio.connecttohost(live.c_str());
+    audio.setVolume(config.get_Audio_Volume());
+
+    // Run audio player
+    audio.loop();
+    // kontrolný výpis
+    if (!audio.isRunning()) {
+      Serial.println("koniec zvonenia");
+    }
+  }
+
+  else if (sTopic == WiFi.macAddress()){
     String controlPARAM = "";
     for (int i = 0; i < length; i++) {
       controlPARAM += (char) payload[i];
