@@ -13,8 +13,11 @@ char buffer[bufferLen];
 const char* file = "/network.ini";
 SPIFFSIniFile ini(file);
 
+String stats;
+
 void callback(const char *topic, byte *payload, unsigned int length);
 inline char* read_Config(const char* section, const char* key);
+String diagnose();
 void printErrorMessage(uint8_t e, bool eol = true);
 
  void goToDeepSleep(long long sleepTime)
@@ -271,6 +274,7 @@ void setup() {
   Serial.println(config.get_Song_URL().c_str());
 
   client.publish(config.get_MQTT_Topic_Advertise_Unit().c_str(), WiFi.macAddress().c_str());
+  client.publish(WiFi.macAddress().c_str(), stats.c_str());
 
   client.subscribe(config.get_MQTT_Topic_Ringing().c_str());
   client.subscribe(config.get_MQTT_Topic_Sleep().c_str());
@@ -403,6 +407,9 @@ void callback(const char *topic, byte *payload, unsigned int length) {
       controlPARAM += (char) payload[i];
     }
     Serial.println(controlPARAM);
+    if (controlPARAM == "diagnose"){
+      diagnose();
+    }
   }
 }
 
@@ -410,6 +417,12 @@ inline char* read_Config(const char* section, const char* key){
   ini.getValue(section, key, buffer, bufferLen);
   return buffer;
 }
+
+String diagnose(){
+  // TODO diagnostiku vštkého okrem ESP32 a zdroja
+  return "diagnose json";
+}
+
 
 void printErrorMessage(uint8_t e, bool eol)
 {
