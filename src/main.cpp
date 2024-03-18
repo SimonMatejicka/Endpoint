@@ -274,7 +274,6 @@ void setup() {
   Serial.println(config.get_Song_URL().c_str());
 
   client.publish(config.get_MQTT_Topic_Advertise_Unit().c_str(), WiFi.macAddress().c_str());
-  client.publish(WiFi.macAddress().c_str(), stats.c_str());
 
   client.subscribe(config.get_MQTT_Topic_Ringing().c_str());
   client.subscribe(config.get_MQTT_Topic_Sleep().c_str());
@@ -418,8 +417,10 @@ inline char* read_Config(const char* section, const char* key){
   return buffer;
 }
 
-String diagnose(){
+String diagnose(String mac){
   // TODO diagnostiku vštkého okrem ESP32 a zdroja
+  String diagnose_topic = "diagnose/" + WiFi.macAddress();
+  client.publish(diagnose_topic.c_str(), stats.c_str());
   return "diagnose json";
 }
 
