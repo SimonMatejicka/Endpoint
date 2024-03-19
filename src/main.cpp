@@ -15,6 +15,7 @@ SPIFFSIniFile ini(file);
 
 String stats = "none :/";
 
+void mqtt_channals();
 void reconect_WiFi();
 void reconect_MQTT();
 void callback(const char *topic, byte *payload, unsigned int length);
@@ -36,6 +37,7 @@ struct Config{
     int8_t I2S_Dout = 22; // DIN
     int8_t I2S_Blck = 26; // BCK
     int8_t I2S_Lrc = 25;  // LCK
+
   private:
     //Wi-Fi
     String WiFi_ssid;
@@ -50,6 +52,7 @@ struct Config{
     String MQTT_topicCall;
     String MQTT_username;
     String MQTT_password;
+    String MQTT_client_id = "esp32-";
     int MQTT_port;
     // Path to song
     String SONG_URL; 
@@ -166,6 +169,9 @@ struct Config{
     String get_MQTT_Password() {
       return MQTT_password;
     }
+    inline String get_MQTT_client_id() {
+      return MQTT_client_id + String(WiFi.macAddress());
+    }
     int get_MQTT_Port() {
       return MQTT_port;
     }
@@ -199,18 +205,20 @@ bool call = false;
 void setup() {
   Serial.begin(config.get_Serial_Baudrate());
   //Mount the SPIFFS  
-  if (!SPIFFS.begin())
-    while (1)
+  if (!SPIFFS.begin()){
+    while (1) {
       Serial.println("SPIFFS.begin() failed");
-  
+    }
+  }
+
   if (!ini.open()) {
     Serial.print("configuration file ");
     Serial.print(file);
     Serial.println(" does not exist");
     Serial.println("Fix it and restart the program");
     // Cannot do anything else
-    while (1)
-      ;
+    while (1) {;}
+
   }
   Serial.println("configuration file exists");
   if (!ini.validate(buffer, bufferLen)) {
@@ -220,8 +228,7 @@ void setup() {
     printErrorMessage(ini.getError());
     Serial.println("Fix it and restart the program");
     // Cannot do anything else
-    while (1)
-      ;
+    while (1) {;}
   }
 
   config.set_Network();
@@ -249,41 +256,17 @@ void setup() {
   client.setServer(config.get_MQTT_Broker().c_str(), config.get_MQTT_Port());
   client.setCallback(callback);
   while (!client.connected()) {
-    String client_id = "esp32-";
-    client_id += String(WiFi.macAddress());
-    Serial.printf("The client %s connects to the public mqtt broker\n", client_id.c_str());
-    if (client.connect(client_id.c_str(), config.get_MQTT_Username().c_str(), config.get_MQTT_Password().c_str())) {
+    Serial.printf("The client %s connects to the public mqtt broker\n", config.get_MQTT_client_id().c_str());
+    if (client.connect(config.get_MQTT_client_id().c_str(), config.get_MQTT_Username().c_str(), config.get_MQTT_Password().c_str())) {
       Serial.println("Private mqtt broker connected");
       Serial.println(client.state());
+      mqtt_channals();
     } else {
       Serial.print("failed with state ");
       Serial.print(client.state());
       delay(2000);
     }
   }
-  
-  Serial.println(config.get_WiFi_SSID().c_str());
-  Serial.println(config.get_WiFi_Password().c_str());
-  Serial.println(config.get_MQTT_Broker().c_str());
-  Serial.println(config.get_MQTT_Topic_Ringing().c_str());
-  Serial.println(config.get_MQTT_Topic_Sleep().c_str());
-  Serial.println(config.get_MQTT_Topic_Advertise_Unit().c_str());
-  Serial.println(config.get_MQTT_Topic_Control().c_str());
-  Serial.println(config.get_MQTT_Topic_Call().c_str());
-  Serial.println(config.get_MQTT_Username().c_str());
-  Serial.println(config.get_MQTT_Password().c_str());
-  Serial.println(config.get_MQTT_Port());
-  Serial.println(config.get_Song_URL().c_str());
-
-  client.publish(config.get_MQTT_Topic_Advertise_Unit().c_str(), WiFi.macAddress().c_str());
-
-  client.subscribe(config.get_MQTT_Topic_Ringing().c_str());
-  client.subscribe(config.get_MQTT_Topic_Sleep().c_str());
-  client.subscribe(config.get_MQTT_Topic_Control().c_str());
- // client.subscribe(config.get_MQTT_Topic_Call().c_str());
-  client.subscribe(config.get_MQTT_Topic_Unit().c_str());
-
-  client.subscribe("live");
 
   //Audio settings
   // Connect MAX98357 I2S Amplifier Module
@@ -313,6 +296,14 @@ void loop() {
   }
 }
 
+void mqtt_channals(){
+  client.publish(config.get_MQTT_Topic_Advertise_Unit().c_str(), WiFi.macAddress().c_str());
+  client.subscribe(config.get_MQTT_Topic_Ringing().c_str());
+  client.subscribe(config.get_MQTT_Topic_Sleep().c_str());
+  client.subscribe(config.get_MQTT_Topic_Control().c_str());
+  client.subscribe(config.get_MQTT_Topic_Unit().c_str());
+}
+
 void reconect_WiFi(){
   WiFi.disconnect(true);
   WiFi.mode(WIFI_STA);
@@ -331,11 +322,11 @@ void reconect_WiFi(){
 }
 
 void reconect_MQTT() {
-  String client_id = "esp32-" + WiFi.macAddress();
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
-    if (client.connect(client_id.c_str(), config.get_MQTT_Username().c_str(), config.get_MQTT_Password().c_str())) {
+    if (client.connect(config.get_MQTT_client_id().c_str(), config.get_MQTT_Username().c_str(), config.get_MQTT_Password().c_str())) {
       Serial.println("MQTT reconnected");
+      mqtt_channals();
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
