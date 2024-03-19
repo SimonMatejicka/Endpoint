@@ -13,11 +13,13 @@ char buffer[bufferLen];
 const char* file = "/network.ini";
 SPIFFSIniFile ini(file);
 
-String stats;
+String stats = "none :/";
 
+void reconect_WiFi();
+void reconect_MQTT();
 void callback(const char *topic, byte *payload, unsigned int length);
 inline char* read_Config(const char* section, const char* key);
-String diagnose();
+String diagnose(String mac);
 void printErrorMessage(uint8_t e, bool eol = true);
 
  void goToDeepSleep(long long sleepTime)
@@ -291,6 +293,12 @@ void setup() {
 }
 
 void loop() {
+  if (!WiFi.isConnected()) {
+    reconect_WiFi();
+  }
+  if (!client.connected()) {
+    reconect_MQTT();
+  }
   client.loop();
   audio.loop();
   if (audio.getAudioCurrentTime() >= 20 && !call){
@@ -301,6 +309,38 @@ void loop() {
       audio.stopSong();
       audio.connecttohost("none");
       Serial.println("stopped");
+    }
+  }
+}
+
+void reconect_WiFi(){
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(config.get_WiFi_SSID(), config.get_WiFi_Password());
+  while (!WiFi.isConnected()) {
+    Serial.print("Attempting MQTT connection...");
+    if (WiFi.begin(config.get_WiFi_SSID(), config.get_WiFi_Password())) {
+      Serial.println("WiFi reconnected");
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(WiFi.status());
+      Serial.println(" try again in 5 seconds");
+      delay(5000);
+    }
+  }
+}
+
+void reconect_MQTT() {
+  String client_id = "esp32-" + WiFi.macAddress();
+  while (!client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    if (client.connect(client_id.c_str(), config.get_MQTT_Username().c_str(), config.get_MQTT_Password().c_str())) {
+      Serial.println("MQTT reconnected");
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      delay(5000);
     }
   }
 }
@@ -407,7 +447,7 @@ void callback(const char *topic, byte *payload, unsigned int length) {
     }
     Serial.println(controlPARAM);
     if (controlPARAM == "diagnose"){
-      diagnose();
+      diagnose(WiFi.macAddress());
     }
   }
 }
