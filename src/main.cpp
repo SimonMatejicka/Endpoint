@@ -12,6 +12,7 @@ const size_t bufferLen = 80;
 char buffer[bufferLen];
 const char* file = "/network.ini";
 SPIFFSIniFile ini(file);
+int top = 0;
 
 String stats = "none :/";
 
@@ -34,7 +35,10 @@ void printErrorMessage(uint8_t e, bool eol = true);
 struct Config{
   // I2S          // TODO: on board pin names 
   protected:
-    int8_t I2S_Dout = 22; // DIN
+    // esp-wroom-32
+    // int8_t I2S_Dout = 22; // DIN
+    // esp-32s 
+    int8_t I2S_Dout = 3; // DIN
     int8_t I2S_Blck = 26; // BCK
     int8_t I2S_Lrc = 25;  // LCK
 
@@ -57,7 +61,8 @@ struct Config{
     // Path to song
     String SONG_URL; 
     // Audio
-    int AUDIO_volume = 35;
+    
+    int AUDIO_volume = 0;
     // Serial monitor boudrate
     int SERIAL_baudrate = 115200;
 
@@ -276,22 +281,29 @@ void setup() {
 }
 
 void loop() {
+  client.loop();
+  audio.loop();
   if (!WiFi.isConnected()) {
     reconect_WiFi();
   }
   if (!client.connected()) {
     reconect_MQTT();
   }
-  client.loop();
-  audio.loop();
-  if (audio.getAudioCurrentTime() >= 20 && !call){
-    audio.setVolume(config.get_Audio_Volume() - (audio.getAudioCurrentTime() - 20));
-    Serial.println(config.get_Audio_Volume() - (audio.getAudioCurrentTime() - 20)); // audio fade out
-    if(true){
-    //if(config.get_Audio_Volume() - (audio.getAudioCurrentTime() - 20) <= 1){
+  if (audio.getAudioCurrentTime() <= 5 && !call){
+    if (top < audio.getAudioCurrentTime()){
+      top += 1;
+      audio.setVolume(top*2);
+    }
+  }  
+  if (audio.getAudioCurrentTime() >= 10 && !call){
+    audio.setVolume(config.get_Audio_Volume() - (audio.getAudioCurrentTime() - 10));
+    Serial.println(config.get_Audio_Volume() - (audio.getAudioCurrentTime() - 10)); // audio fade out
+    //if(true){
+    if(config.get_Audio_Volume() - (audio.getAudioCurrentTime() - 10) <= 1){
       audio.stopSong();
       audio.connecttohost("none");
       Serial.println("stopped");
+      top = 0;
     }
   }
 }
