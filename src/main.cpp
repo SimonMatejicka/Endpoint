@@ -62,7 +62,7 @@ struct Config{
     String SONG_URL; 
     // Audio
     
-    int AUDIO_volume = 0;
+    int AUDIO_volume = 10;
     // Serial monitor boudrate
     int SERIAL_baudrate = 115200;
 
@@ -289,6 +289,7 @@ void loop() {
   if (!client.connected()) {
     reconect_MQTT();
   }
+  /*
   if (audio.getAudioCurrentTime() <= 5 && !call){
     if (top < audio.getAudioCurrentTime()){
       top += 1;
@@ -306,6 +307,7 @@ void loop() {
       top = 0;
     }
   }
+  */
 }
 
 void mqtt_channals(){
